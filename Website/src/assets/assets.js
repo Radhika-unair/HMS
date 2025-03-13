@@ -71,7 +71,7 @@ export async function fetchDoctors() {
     return data.map((doctor) => ({
       _id: doctor._id,
       name: doctor.name,
-      image: `https://87c6-2409-40f3-1003-a579-98e8-4f69-6382-2c13.ngrok-free.app/image_file?file=${doctor.image}`,
+      image: `https://87c6-2409-40f3-1003-a579-98e8-4f69-6382-2c13.ngrok-free.app/image_file?file=${doctor.image}&ngrok-skip-browser-warning=true`,
       speciality: doctor.speciality,
       degree: doctor.degree,
       experience: doctor.experience,
