@@ -24,7 +24,9 @@ const Login = () => {
     try {
       // Get the appropriate storage key based on user type
       const storageKey = userType === "doctor" ? "doctors" : "users";
-      const existingUsers = JSON.parse(localStorage.getItem(storageKey) || "[]");
+      const existingUsers = JSON.parse(
+        localStorage.getItem(storageKey) || "[]"
+      );
 
       if (state === "Sign Up") {
         // Check if email already exists
@@ -156,7 +158,9 @@ const Login = () => {
 
         {/* Toggle between Sign Up and Login */}
         <p className="w-full text-center">
-          {state === "Sign Up" ? "Already have an account?" : "New to our platform?"}{" "}
+          {state === "Sign Up"
+            ? "Already have an account?"
+            : "New to our platform?"}{" "}
           <span
             onClick={() => setState(state === "Sign Up" ? "Login" : "Sign Up")}
             className="text-primary cursor-pointer"
