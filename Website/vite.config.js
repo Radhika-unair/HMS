@@ -1,14 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
   server: {
+    allowedHosts: [
+      "https://87c6-2409-40f3-1003-a579-98e8-4f69-6382-2c13.ngrok-free.app" // Add your ngrok domain here
+    ],
     proxy: {
       "/asset": {
-        target:
-          "https://0b1c-2409-40f3-1015-99e9-7d54-f406-4707-6649.ngrok-free.app",
+        target: "https://87c6-2409-40f3-1003-a579-98e8-4f69-6382-2c13.ngrok-free.app",
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -31,4 +31,5 @@ export default defineConfig({
     },
     cors: true,
   },
+  plugins: [react()],
 });
