@@ -21,7 +21,7 @@ import General_physician from "./General_physician.svg";
 import Gynecologist from "./Gynecologist.svg";
 import Neurologist from "./Neurologist.svg";
 import Pediatricians from "./Pediatricians.svg";
-
+let url = "https://87c6-2409-40f3-1003-a579-98e8-4f69-6382-2c13.ngrok-free.app";
 export const assets = {
   appointment_img,
   header_img,
@@ -54,36 +54,57 @@ export const specialityData = [
 // Function to fetch doctors data
 export async function fetchDoctors() {
   try {
-    const response = await fetch(
-      `https://87c6-2409-40f3-1003-a579-98e8-4f69-6382-2c13.ngrok-free.app/asset/doctors`,
-      {
-        headers: {
-          "ngrok-skip-browser-warning": "true", // Bypass warning
-        },
-      }
-    );
+    const response = await fetch(`${url}/asset/doctors`, {
+      headers: {
+        "ngrok-skip-browser-warning": "true",
+      },
+    });
 
     if (!response.ok) {
       throw new Error("Network response was not ok");
     }
 
     const data = await response.json();
-    return data.map((doctor) => ({
-      _id: doctor._id,
-      name: doctor.name,
-      image: `https://87c6-2409-40f3-1003-a579-98e8-4f69-6382-2c13.ngrok-free.app/image_file?file=${doctor.image}&ngrok-skip-browser-warning=true`,
-      speciality: doctor.speciality,
-      degree: doctor.degree,
-      experience: doctor.experience,
-      about: doctor.about,
-      fees: doctor.fees,
-      address: {
-        line1: doctor.line1,
-        line2: doctor.line2,
-      },
-    }));
+
+    // Fetch image URLs asynchronously
+    return await Promise.all(
+      data.map(async (doctor) => ({
+        _id: doctor._id,
+        name: doctor.name,
+        image: await img(doctor.image), // Await image URL here
+        speciality: doctor.speciality,
+        degree: doctor.degree,
+        experience: doctor.experience,
+        about: doctor.about,
+        fees: doctor.fees,
+        address: {
+          line1: doctor.line1,
+          line2: doctor.line2,
+        },
+      }))
+    );
   } catch (error) {
     console.error("Error fetching doctors:", error);
     return [];
+  }
+}
+
+async function img(doct) {
+  try {
+    const response = await fetch(`${url}/image_file?file=${doct}`, {
+      method: "GET",
+      headers: {
+        "ngrok-skip-browser-warning": "true",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch image");
+    }
+
+    return response.url; // Return the final URL
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    return ""; // Return empty string if fetch fails
   }
 }
