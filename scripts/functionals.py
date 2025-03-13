@@ -1,6 +1,7 @@
 import qrcode
 import io
 import datetime
+import base64
 def qr_generate(data:dict, local_save = False):
     try:
         img = qrcode.make(data)
@@ -17,3 +18,14 @@ def qr_generate(data:dict, local_save = False):
         return img_io
     except Exception as e:
         print(e)
+def img_gen(file_name):
+    img_io = io.BytesIO()
+    try:
+        with open(f"assets/{file_name}", "rb") as f:
+            img_io.write(f.read())
+        img_io.seek(0)
+        
+        return img_io
+    except Exception as e:
+        print(e)
+        return None

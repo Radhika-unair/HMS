@@ -1,18 +1,28 @@
-import { createContext } from "react";
-import { doctors } from "../assets/assets";
+import { createContext, useState, useEffect } from "react";
+import { fetchDoctors } from "../assets/assets";
 
 export const AppContext = createContext();
 
-const AppContextProvider = (props) => {
+const AppContextProvider = ({ children }) => {
+  const [doctors, setDoctors] = useState([]);
 
-  const currencySymbol='₹'
-  const value = {
-    doctors,
-    currencySymbol
-  };
+  const currencySymbol = "₹";
+
+  useEffect(() => {
+    const fetchAndStoreDoctors = async () => {
+      console.log("Fetching fresh doctors data...");
+      const doctorsData = await fetchDoctors();
+      setDoctors(doctorsData);
+      sessionStorage.setItem("doctors", JSON.stringify(doctorsData));
+    };
+
+    fetchAndStoreDoctors(); // Always fetch fresh data on page reload
+  }, []);
 
   return (
-    <AppContext.Provider value={value}>{props.children}</AppContext.Provider>
+    <AppContext.Provider value={{ doctors, currencySymbol }}>
+      {children}
+    </AppContext.Provider>
   );
 };
 

@@ -117,35 +117,43 @@ class modify_table:
         details_ = []
         try:
             cursor = self.connect.cursor()
-            query  = "SELECT * FROM doctor"
+
+        # 🔄 Force the latest data
+            self.connect.commit()  # Ensures any pending transactions are applied
+
+            query = "SELECT * FROM doctor"
             cursor.execute(query)
             result = cursor.fetchall()
+
             for items in result:
-                with open(f"assets/{items[11]}.png","rb") as im:
-                    img_data  = base64.b64encode(im.read()).decode('utf-8')
                 doc_obj = {
-                    "_id" : items[0],
-                    "name" : items[2],
-                    "image":img_data,
-                    "speciality":items[3],
-                    "degree":items[6],
-                    "experience":items[5],
-                    "about":items[7],
-                    "fees":str(items[8]),
-                    "address":{
-                        "line1":items[9],
-                        "line2":items[10]
+                    "_id": items[0],
+                    "name": items[2],
+                    "image": f"{items[11]}.png",
+                    "speciality": items[3],
+                    "degree": items[6],
+                    "experience": items[5],
+                    "about": items[7],
+                    "fees": str(items[8]),
+                    "address": {
+                        "line1": items[9],
+                        "line2": items[10]
                     }
                 }
                 details_.append(doc_obj)
+
             details_ = json.dumps(details_, indent=4)
-            #print(details_)
+
+            print("Fetched from DB:", details_)  # 🔍 Debugging print
             return details_
-        except Exception as e :
-            print(e)
-            return json.dumps({"status":"Fail"})
+
+        except Exception as e:
+            print("Error:", e)
+            return json.dumps({"status": "Fail"})
+
         finally:
             cursor.close()
+
             
 
 #myobj = modify_table()

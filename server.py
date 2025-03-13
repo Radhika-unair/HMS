@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify ,send_file ,Response
+from flask import Flask, request, jsonify ,send_file ,Response ,make_response
 from flask_cors import CORS 
 import scripts.db_con as DBconnect
 import scripts.functionals as Qr
@@ -13,9 +13,9 @@ chat_obj = llm.OllamaModel()
 def auth():
     data = request.get_json()
     print(data['email'])  # Logs received JSON data in the console
-    print(data['Password']) 
+    print(data['password']) 
     print(data['user_type'])
-    if Db_obj.login_auth(email = data['email'], password = data['Password'],user_type = data['user_type'] ) :
+    if Db_obj.login_auth(email = data['email'], password = data['password'],user_type = data['user_type'] ) :
         return jsonify({"access": "True"}), 200
     else :
         return jsonify({"access": "False"}), 200
@@ -34,22 +34,23 @@ def qr_gen():
 
 
 # details passer 
-@app.route('/asset/doctors', methods=['POST'])
+@app.route('/asset/doctors', methods=['POST','GET'])
 def doctor_asset():
     data = Db_obj.doctor_json()
-    print(data)
-    return Response(data, mimetype='application/json')
+    print(data)  # Debugging - Check if data is fresh
+    response = make_response(data)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
-from flask import Flask, request, jsonify
-from flask_cors import CORS
 
-app = Flask(__name__)
-CORS(app)
 
 @app.route('/chat', methods=['POST'])
 def chat_bot():
     try:
         data = request.get_json()
+        print(data)
         if not data or "contents" not in data:
             return jsonify({"error": "Missing 'contents' field"}), 400
         
@@ -58,7 +59,12 @@ def chat_bot():
     except Exception as e:
         return jsonify({"error": str(e)}), 500  # Return JSON on error
 
-
+@app.route('/image_file', methods=['GET'])
+def image_file():
+    fl_name = request.args.get("file")
+    img = Qr.img_gen(fl_name)
+    print(img)
+    return send_file(img, mimetype='image/png')
 
 if __name__ == '__main__':
     app.run(debug=True)
