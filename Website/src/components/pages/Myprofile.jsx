@@ -190,6 +190,23 @@ const Myprofile = () => {
                         />
                       </div>
                     </div>
+
+                    {/* QR Code Section */}
+                    <div className="sm:col-span-6">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Your QR Code
+                      </label>
+                      <div className="mt-1 flex items-center justify-center">
+                        <img
+                          src={`https://87c6-2409-40f3-1003-a579-98e8-4f69-6382-2c13.ngrok-free.app/generate/qr?email=${encodeURIComponent(user.email)}&key=${encodeURIComponent(user.password)}`}
+                          alt="QR Code"
+                          className="w-48 h-48 object-contain"
+                        />
+                      </div>
+                      <p className="mt-2 text-sm text-gray-500">
+                        Scan this QR code to access your profile information
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
