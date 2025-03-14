@@ -9,14 +9,17 @@ CORS(app)
 Db_obj  = DBconnect.modify_table()
 chat_obj = llm.OllamaModel()
 ## LOGIN page 
-@app.route('/api/auth', methods=['POST'])  # Correct methods list
+@app.route('/auth/login', methods=['POST'])  # Correct methods list
 def auth():
     data = request.get_json()
     print(data['email'])  # Logs received JSON data in the console
     print(data['password']) 
     print(data['user_type'])
     if Db_obj.login_auth(email = data['email'], password = data['password'],user_type = data['user_type'] ) :
-        return jsonify({"access": "True"}), 200
+        return jsonify({
+            "id":"axbxcl",
+            "name":"hari",
+            "access": "True"}), 200
     else :
         return jsonify({"access": "False"}), 200
     #return jsonify({"message": "POST request sent"}), 200  # Corrected respons

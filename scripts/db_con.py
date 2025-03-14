@@ -22,6 +22,7 @@ class modify_table:
 
     def login_auth( self, email, password, user_type):
         try:
+            self.connect.commit()
             cursor = self.connect.cursor()
             query = "SELECT COUNT(*) FROM users WHERE email = %s AND password = %s AND usertype = %s"
             cursor.execute(query, (email, password , user_type))
