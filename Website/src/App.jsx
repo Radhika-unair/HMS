@@ -17,6 +17,8 @@ import EditDoctor from "./components/pages/admin/EditDoctor";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ChatBot from "./components/ChatBot";
+import DoctorDetails from "./components/pages/DoctorDetails";
+import PatientDetails from "./components/pages/PatientDetails";
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAuth = true }) => {
@@ -210,7 +212,9 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-
+        <Route path="/doctor/details" element={<DoctorDetails />} />
+        <Route path="/patient/details" element={<PatientDetails />} />
+        
         <Route
           path="/doctor/dashboard"
           element={

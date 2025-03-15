@@ -18,8 +18,12 @@ def qr_generate(data:dict, local_save = False):
         return img_io
     except Exception as e:
         print(e)
-def img_gen(file_name):
+def img_gen(file_name , user = "doc"):
     img_io = io.BytesIO()
+    if file_name == "None.png" and user == "doc":
+        file_name = "doc.png"
+    if file_name == "None.png" and user == "pat":
+        file_name = "pat.png"
     try:
         with open(f"assets/{file_name}", "rb") as f:
             img_io.write(f.read())

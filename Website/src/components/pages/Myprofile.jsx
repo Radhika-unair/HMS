@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import BedStatus from "./BedStatus";
 import VisitHistory from "./VisitHistory";
+import { BASE_URL } from "../../url_config";
 
 const Myprofile = () => {
   const [user, setUser] = useState(null);
@@ -198,7 +199,7 @@ const Myprofile = () => {
                       </label>
                       <div className="mt-1 flex items-center justify-center">
                         <img
-                          src={`https://87c6-2409-40f3-1003-a579-98e8-4f69-6382-2c13.ngrok-free.app/generate/qr?email=${encodeURIComponent(user.email)}&key=${encodeURIComponent(user.password)}`}
+                          src={`${BASE_URL}/generate/qr?email=${encodeURIComponent(user.email)}&key=${encodeURIComponent(user.password)}`}
                           alt="QR Code"
                           className="w-48 h-48 object-contain"
                         />
@@ -246,13 +247,15 @@ const Myprofile = () => {
                       >
                         <option value="">Choose a doctor</option>
                         {doctors.map((doctor) => (
-                          <option key={doctor.id} value={doctor.id}>
-                            Dr. {doctor.name} - {doctor.specialty}
+                          <option key={doctor._id} value={doctor._id}>
+                            {doctor.name} - {doctor.speciality}
+                            
                           </option>
+                          
                         ))}
                       </select>
                     </div>
-
+                        
                     {/* Date and Time Selection */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="bg-gray-50 p-4 rounded-lg">

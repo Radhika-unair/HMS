@@ -15,14 +15,29 @@ def auth():
     print(data['email'])  # Logs received JSON data in the console
     print(data['password']) 
     print(data['user_type'])
-    if Db_obj.login_auth(email = data['email'], password = data['password'],user_type = data['user_type'] ) :
+    result = Db_obj.login_auth(email = data['email'], password = data['password'],user_type = data['user_type'] )
+    if result["status"] :
         return jsonify({
-            "id":"axbxcl",
-            "name":"hari",
+            "id":str(result["id"]),
+            "name":result["name"],
             "access": "True"}), 200
     else :
         return jsonify({"access": "False"}), 200
     #return jsonify({"message": "POST request sent"}), 200  # Corrected respons
+@app.route("/auth/signup", methods =["POST"],)
+def signup():
+    data = request.get_json()
+    #{'email': 'fghgf@gma', 'password': 'gg', 'user_type': 'patient', 'name': 'csd'}
+    result = Db_obj.signup_db(email = data['email'],password = data['password'],user_type = data['user_type'], name=data['name'])
+    print(data)
+    if result[0] == True:
+
+        return jsonify({"access": "True",
+                        "name":result[1],
+                        "id":str(result[3])
+                        }), 200
+    else:
+        return jsonify({"access": "False"}), 200
 
 
 
@@ -65,9 +80,18 @@ def chat_bot():
 @app.route('/image_file', methods=['GET'])
 def image_file():
     fl_name = request.args.get("file")
-    img = Qr.img_gen(fl_name)
+    user = request.args.get("usr")
+    img = Qr.img_gen(fl_name,user)
     print(img)
     return send_file(img, mimetype='image/png')
 
+@app.route('/detail/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    print(data)
+    if Db_obj.detial_reg(data):
+        return jsonify({'status': "true"}) ,200
+    else:
+        return jsonify({'status': "false"}) ,200
 if __name__ == '__main__':
     app.run(host='0.0.0.0',debug=True)

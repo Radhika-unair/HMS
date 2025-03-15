@@ -20,23 +20,42 @@ class modify_table:
         )
         print("connected")
 
-    def login_auth( self, email, password, user_type):
+    def login_auth(self, email, password, user_type):
         try:
             self.connect.commit()
             cursor = self.connect.cursor()
-            query = "SELECT COUNT(*) FROM users WHERE email = %s AND password = %s AND usertype = %s"
-            cursor.execute(query, (email, password , user_type))
+
+            # Query to fetch serial_id along with user existence check
+            query = "SELECT serial_id,Name FROM users WHERE email = %s AND password = %s AND usertype = %s"
+            cursor.execute(query, (email, password, user_type))
             result = cursor.fetchone()
 
-            if result[0] > 0:
-                print("User exists.")
-                return True
+            if result:
+                serial_id = result[0]
+                print(f"User exists. Serial ID: {serial_id}")
+                if user_type =="doctor":
+                    sec_query = """SELECT doctor_id
+                               FROM doctor 
+                               WHERE serial_number = %s;"""
+                    cursor.execute(sec_query, (serial_id,))
+                      # Ensure tuple formatting
+                    details = cursor.fetchone()
+                    id = details[0]
+                if user_type == "patient":
+                    sec_query = """SELECT patient_id 
+                               FROM patient 
+                               WHERE serial_number = %s;"""
+                    cursor.execute(sec_query, (serial_id,))
+                    # Ensure tuple formatting
+                    details = cursor.fetchone()
+                    id = details[0]
+                return {"status": True, "id": id,"name":result[1]}
             else:
                 print("User does not exist.")
-                return False
+                return {"status": False, "id": None}
         except mysql.connector.Error as err:
             print(f"Error: {err}")
-            return False
+            return {"status": False, "id": None}
         finally:
             cursor.close()
 
@@ -128,7 +147,7 @@ class modify_table:
 
             for items in result:
                 doc_obj = {
-                    "_id": items[0],
+                    "_id": str(items[0]),
                     "name": items[2],
                     "image": f"{items[11]}.png",
                     "speciality": items[3],
@@ -154,6 +173,74 @@ class modify_table:
 
         finally:
             cursor.close()
+    def signup_db(self, email, password, user_type, name):
+        try:
+            cursor = self.connect.cursor()
+            if user_type == "doctor":
+                name = f"Dr. {name}"
+            # Insert user into users table
+            query = """INSERT INTO users (Name, password, usertype, email) 
+                       VALUES (%s, %s, %s, %s);"""
+            cursor.execute(query, (name, password, user_type, email))
+            self.connect.commit()
+
+            # Fetch serial_number for the newly inserted user
+            query = """SELECT serial_number FROM users WHERE email = %s AND password = %s"""
+            cursor.execute(query, (email, password))
+            serial_no = cursor.fetchone()
+
+            if serial_no:
+                serial_no = serial_no[0]  # Extract value from tuple
+
+                # Insert into corresponding table based on user type
+                if user_type.lower() == "doctor":
+                    query = """INSERT INTO doctor (serial_number, name) 
+                               VALUES (%s, %s);"""
+                    cursor.execute(query, (serial_no, name))
+                    query = """SELECT doctor_id FROM doctor WHERE serial_number = %s"""
+                    cursor.execute(query, (serial_no,))
+                    id = cursor.fetchone()
+
+                elif user_type.lower() == "patient":
+                    query = """INSERT INTO patient (serial_number, name) 
+                               VALUES (%s, %s);"""
+                    cursor.execute(query, (serial_no, name))
+                    query = """SELECT patient_id FROM patient WHERE serial_number = %s"""
+                    cursor.execute(query,(serial_no,))
+                    id = cursor.fetchone()
+                self.connect.commit()
+                
+
+            else:
+                print("Error: Serial number not found for the user")
+            return [True,name,email,id[0],user_type] 
+        except Exception as e:
+            print("Error:", e)
+            return [False]
+    
+        finally:
+            cursor.close()  # Ensure cursor is always closed
+
+    def detial_reg(self,data):
+        self.connect.commit()
+        try:
+            cursor = self.connect.cursor()
+            if data["usertype"] == "doctor":
+                query = """UPDATE doctor 
+                               SET about = %s , specialization = %s, phone_number = %s, add_line1 = %s, add_line2 = %s, fees = %s 
+                               WHERE doctor_id = %s;"""
+                cursor.execute(query, (data["bio"],data["speciality"], data["phone_number"], data["address_line1"], data["address_line2"], data["fees"], data["userId"]))
+            if data["usertype"] == "patient":
+                em = str(data["emergencyContact"])+"\t"+str(data["emergencyPhone"])
+                query = """UPDATE patient 
+                               SET date_of_birth = %s, gender = %s, address = %s, phone_number = %s ,bloodgroup = %s, Allergies = %s , Emergency = %s
+                               WHERE patient_id = %s;"""
+                cursor.execute(query, (data["dateOfBirth"],data["gender"], data["address"], data["phone"], data["bloodGroup"], data["allergies"], em,data["userId"]))
+            self.connect.commit()
+            return True
+        except Exception as e:
+            print("Error",e)
+            return False
 
             
 

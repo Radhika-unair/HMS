@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { BASE_URL } from "../../url_config";
 
-const API_URL = "https://87c6-2409-40f3-1003-a579-98e8-4f69-6382-2c13.ngrok-free.app"; // Replace with actual API endpoint
+const API_URL = BASE_URL; // Replace with actual API endpoint
 
 const Login = () => {
   const [state, setState] = useState("Login"); // Toggle between "Sign Up" & "Login"
@@ -33,18 +34,13 @@ const Login = () => {
         requestBody.name = name;
       }
 
-      console.log("Sending request to:", `${API_URL}${endpoint}`);
-      console.log("Request body:", requestBody);
-
       const response = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
 
-      console.log("Response status:", response.status);
       const result = await response.json();
-      console.log("Response data:", result);
 
       if (!response.ok) {
         throw new Error(result.message || "Authentication failed");
@@ -57,42 +53,34 @@ const Login = () => {
 
       // Store user data in localStorage
       const userData = {
-        id: result.id || Date.now(),
+        id: result.id,
         name: result.name || name,
         email,
         type: userType,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
 
-      console.log("Storing user data:", userData);
-
-      // Store in appropriate localStorage key based on user type
       if (userType === "doctor") {
         localStorage.setItem("currentDoctor", JSON.stringify(userData));
-        // Also store in doctors array if it doesn't exist
         const existingDoctors = JSON.parse(localStorage.getItem("doctors") || "[]");
         if (!existingDoctors.some(doc => doc.id === userData.id)) {
           localStorage.setItem("doctors", JSON.stringify([...existingDoctors, userData]));
         }
       } else {
         localStorage.setItem("currentUser", JSON.stringify(userData));
-        // Also store in users array if it doesn't exist
         const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
         if (!existingUsers.some(user => user.id === userData.id)) {
           localStorage.setItem("users", JSON.stringify([...existingUsers, userData]));
         }
       }
 
-      // Navigate based on user type
-      if (userType === "doctor") {
-        console.log("Navigating to doctor dashboard");
-        navigate("/doctor/dashboard");
+      // Redirect logic
+      if (state === "Sign Up") {
+        navigate(userType === "doctor" ? "/doctor/details" : "/patient/details");
       } else {
-        console.log("Navigating to home");
-        navigate("/home");
+        navigate(userType === "doctor" ? "/doctor/dashboard" : "/home");
       }
     } catch (err) {
-      console.error("Login error:", err);
       setError(err.message || "An error occurred. Please try again.");
     }
   };
@@ -104,7 +92,6 @@ const Login = () => {
         <p>Please {state === "Sign Up" ? "sign up" : "log in"} to continue</p>
         {error && <p className="w-full text-center text-red-500 text-sm">{error}</p>}
 
-        {/* User Type Selection */}
         <div className="w-full flex gap-4 mb-2">
           {["patient", "doctor"].map((type) => (
             <label key={type} className="flex items-center gap-2">
@@ -121,7 +108,6 @@ const Login = () => {
           ))}
         </div>
 
-        {/* Name Field (only for Sign Up) */}
         {state === "Sign Up" && (
           <div className="w-full">
             <input
@@ -134,7 +120,6 @@ const Login = () => {
           </div>
         )}
 
-        {/* Email Field */}
         <div className="w-full">
           <input
             type="email"
@@ -145,7 +130,6 @@ const Login = () => {
           />
         </div>
 
-        {/* Password Field */}
         <div className="w-full">
           <input
             type="password"
@@ -156,23 +140,20 @@ const Login = () => {
           />
         </div>
 
-        {/* Submit Button */}
         <button type="submit" className="w-full bg-primary text-white py-2.5 rounded">
           {state === "Sign Up" ? "Sign Up" : "Login"}
         </button>
 
-        {/* Toggle Between Sign Up & Login */}
         <p className="w-full text-center">
-          {state === "Sign Up" ? "Already have an account?" : "New to our platform?"}{" "}
+          {state === "Sign Up" ? "Already have an account?" : "New to our platform?"} {" "}
           <span onClick={() => setState(state === "Sign Up" ? "Login" : "Sign Up")} className="text-primary cursor-pointer">
             {state === "Sign Up" ? "Login" : "Sign Up"}
           </span>
         </p>
 
-        {/* Admin Login */}
         <div className="w-full text-center mt-2">
           <p className="text-gray-500">
-            Are you an admin?{" "}
+            Are you an admin? {" "}
             <span onClick={() => navigate("/admin/login")} className="text-primary cursor-pointer hover:text-primary/80">
               Admin Login
             </span>

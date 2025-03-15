@@ -1,14 +1,15 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { BASE_URL } from "../Website/src/url_config";
 
 export default defineConfig({
   server: {
     allowedHosts: [
-      "https://87c6-2409-40f3-1003-a579-98e8-4f69-6382-2c13.ngrok-free.app" // Add your ngrok domain here
+      BASE_URL // Add your ngrok domain here
     ],
     proxy: {
       "/asset": {
-        target: "https://87c6-2409-40f3-1003-a579-98e8-4f69-6382-2c13.ngrok-free.app",
+        target: BASE_URL,
         changeOrigin: true,
         secure: false,
         ws: true,
