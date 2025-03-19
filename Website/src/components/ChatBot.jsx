@@ -8,36 +8,92 @@ const ChatBot = () => {
   const chatBotRef = useRef();
 
   const generateBotResponse = async (history) => {
-    const updateHistory = (text) => {
-      setChatHistory(prev => [...prev.filter(msg => msg.text !== "Thinking..."), {role: "model", text}]);
-    }
+    const updateHistory = (text, isError = false) => {
+      setChatHistory((prev) => [
+        ...prev.filter((msg) => msg.text !== "Thinking..."),
+        { role: "model", text, isError },
+      ]);
+    };
 
-    // Get the last user message
-    const lastMessage = history[history.length - 1].text.toLowerCase();
-    
-    // Basic response logic
-    let response = "I'm here to help! How can I assist you with your hospital-related queries?";
-    
-    if (lastMessage.includes("appointment") || lastMessage.includes("book")) {
-      response = "To book an appointment, please visit our 'ALL DOCTORS' section, select your preferred doctor, and follow the booking process. You'll need to be logged in to make an appointment.";
-    } else if (lastMessage.includes("doctor") || lastMessage.includes("specialist")) {
-      response = "We have various specialists including General Physicians, Gynecologists, Dermatologists, Pediatricians, Neurologists, and Gastroenterologists. You can find them all in our 'ALL DOCTORS' section.";
-    } else if (lastMessage.includes("contact") || lastMessage.includes("reach")) {
-      response = "You can reach us through our 'CONTACT' page. We're available 24/7 for emergencies.";
-    } else if (lastMessage.includes("login") || lastMessage.includes("sign up")) {
-      response = "You can login or create an account using the 'Login/Sign Up' button in the navigation bar. We have separate login options for patients, doctors, and administrators.";
-    } else if (lastMessage.includes("emergency") || lastMessage.includes("urgent")) {
-      response = "For emergencies, please call our emergency helpline immediately. You can find the number on our 'CONTACT' page.";
-    } else if (lastMessage.includes("cost") || lastMessage.includes("fee") || lastMessage.includes("price")) {
-      response = "Consultation fees vary by doctor and specialty. You can see the fees listed on each doctor's profile in the 'ALL DOCTORS' section.";
-    } else if (lastMessage.includes("thank") || lastMessage.includes("thanks")) {
-      response = "You're welcome! Is there anything else I can help you with?";
-    }
+    try {
+      // Get the last user message from the chat history
+      const lastUserMessage = history
+        .filter((msg) => msg.role === "user")
+        .pop()?.text;
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    updateHistory(response);
-  }
+      if (!lastUserMessage) {
+        throw new Error("No user message found in the chat history.");
+      }
+
+      // Convert the message to lowercase for easier matching
+      const lastMessage = lastUserMessage.toLowerCase();
+
+      // Predefined responses based on keywords
+      let response = ""; // Declare response as 'let' to allow reassignment
+      if (lastMessage.includes("appointment") || lastMessage.includes("book")) {
+        response = "To book an appointment, please visit our 'ALL DOCTORS' section, select your preferred doctor, and follow the booking process. You'll need to be logged in to make an appointment.";
+      } else if (lastMessage.includes("doctor") || lastMessage.includes("specialist")) {
+        response = "We have various specialists including General Physicians, Gynecologists, Dermatologists, Pediatricians, Neurologists, and Gastroenterologists. You can find them all in our 'ALL DOCTORS' section.";
+      } else if (lastMessage.includes("contact") || lastMessage.includes("reach")) {
+        response = "You can reach us through our 'CONTACT' page. We're available 24/7 for emergencies.";
+      } else if (lastMessage.includes("login") || lastMessage.includes("sign up")) {
+        response = "You can login or create an account using the 'Login/Sign Up' button in the navigation bar. We have separate login options for patients, doctors, and administrators.";
+      } else if (lastMessage.includes("emergency") || lastMessage.includes("urgent")) {
+        response = "For emergencies, please call our emergency helpline immediately. You can find the number on our 'CONTACT' page.";
+      } else if (lastMessage.includes("cost") || lastMessage.includes("fee") || lastMessage.includes("price")) {
+        response = "Consultation fees vary by doctor and specialty. You can see the fees listed on each doctor's profile in the 'ALL DOCTORS' section.";
+      } else if (lastMessage.includes("thank") || lastMessage.includes("thanks")) {
+        response = "You're welcome! Is there anything else I can help you with?";
+      } else {
+        // If no keyword matches, send the message to Ollama
+        console.log("Sending request to Ollama:", {
+          model: "meditron", // Use the Meditron model
+          prompt: lastUserMessage,
+        });
+
+        // Send the request to Ollama
+        const ollamaResponse = await fetch("http://localhost:11434/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "meditron", // Use the Meditron model
+            prompt: lastUserMessage, // Use the last user message as the prompt
+            stream: false, // Set to true if you want streaming responses
+          }),
+        });
+
+        // Log the response status
+        console.log("Ollama response status:", ollamaResponse.status);
+
+        if (!ollamaResponse.ok) {
+          throw new Error("Failed to fetch response from Ollama");
+        }
+
+        // Parse the response data
+        const data = await ollamaResponse.json();
+        console.log("Ollama response data:", data);
+
+        // Extract the bot's response from the `response` field
+        response = data.response.trim(); // Reassign the response variable
+      }
+
+      // Update the chat history with the bot's response
+      updateHistory(response);
+    } catch (error) {
+      console.error("Error generating bot response:", error);
+      updateHistory(error.message, true);
+    }
+  };
+
+  useEffect(() => {
+    // Auto-scroll whenever chat history updates
+    if (chatBotRef.current) {
+      chatBotRef.current.scrollTo({
+        top: chatBotRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [ChatHistory]);
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
@@ -81,8 +137,8 @@ const ChatBot = () => {
               </svg>
             </button>
           </div>
-          
-          <div className="flex-1 overflow-y-auto p-4">
+
+          <div ref={chatBotRef} className="flex-1 overflow-y-auto p-4">
             <div className="space-y-4">
               <div className="flex items-start gap-2">
                 <div className="bg-primary/10 p-3 rounded-lg">
@@ -94,11 +150,11 @@ const ChatBot = () => {
               ))}
             </div>
           </div>
-          
+
           <div className="p-4 border-t">
-            <ChatForm 
-              ChatHistory={ChatHistory} 
-              setChatHistory={setChatHistory} 
+            <ChatForm
+              ChatHistory={ChatHistory}
+              setChatHistory={setChatHistory}
               generateBotResponse={generateBotResponse}
             />
           </div>
@@ -108,4 +164,4 @@ const ChatBot = () => {
   );
 };
 
-export default ChatBot; 
+export default ChatBot;

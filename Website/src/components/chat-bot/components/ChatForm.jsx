@@ -8,7 +8,7 @@ const ChatForm = ({ ChatHistory, setChatHistory, generateBotResponse }) => {
     if (!message.trim()) return;
 
     const newMessage = { role: "user", text: message };
-    setChatHistory(prev => [...prev, newMessage, { role: "model", text: "Thinking..." }]);
+    setChatHistory((prev) => [...prev, newMessage, { role: "model", text: "Thinking..." }]);
     setMessage("");
     await generateBotResponse([...ChatHistory, newMessage]);
   };
@@ -32,4 +32,4 @@ const ChatForm = ({ ChatHistory, setChatHistory, generateBotResponse }) => {
   );
 };
 
-export default ChatForm; 
+export default ChatForm;
