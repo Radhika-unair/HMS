@@ -26,7 +26,7 @@ class modify_table:
             cursor = self.connect.cursor()
 
             # Query to fetch serial_id along with user existence check
-            query = "SELECT serial_id,Name FROM users WHERE email = %s AND password = %s AND usertype = %s"
+            query = "SELECT serial_number,Name FROM users WHERE email = %s AND password = %s AND usertype = %s"
             cursor.execute(query, (email, password, user_type))
             result = cursor.fetchone()
 
@@ -59,65 +59,64 @@ class modify_table:
         finally:
             cursor.close()
 
-    def details_extract(self, email: str, passwrd: str):
+    def details_extract(self, email: str,id , user_type):
         retrn_data = {}
     
         try:
             cursor = self.connect.cursor()
 
             # Primary query to fetch user details
-            query = """SELECT usertype, serial_number, Name
-                   FROM users 
-                   WHERE email = %s AND password = %s;"""
-            cursor.execute(query, (email, passwrd))
-            result = cursor.fetchone()
+            #query = """SELECT usertype, serial_number, Name
+            ##       FROM users 
+            #       WHERE email = %s AND password = %s;"""
+            #cursor.execute(query, (email, passwrd))
+            #result = cursor.fetchone()
 
-            if not result:
-                print("No user found")
-                return {}  # Return empty dict if no user is found
+            #if not result:
+            #    print("No user found")
+            #    return {}  # Return empty dict if no user is found
 
-            usertype, serial_number, username = result
+            #usertype, serial_number, username = result
 
-            if usertype == "doctor":
-                sec_query = """SELECT doctor_id, name, specialization, phone_number 
+            if user_type == "doctor":
+                sec_query = """SELECT serial_number, name, specialization, phone_number 
                                FROM doctor 
-                               WHERE serial_number = %s;"""
-                cursor.execute(sec_query, (serial_number,))  # Ensure tuple formatting
+                               WHERE doctor_id, = %s;"""
+                cursor.execute(sec_query, (id,))  # Ensure tuple formatting
                 details = cursor.fetchone()
 
                 if details:
                     retrn_data = {
-                        "usertype": usertype,
-                        "doctor_id": details[0],
+                        "usertype": user_type,
+                        "doctor_id": id,
                         "name": details[1],
                         
                         "specialization": details[2],
                         "phone_number": details[3],
                         "email": email,
-                        "username": username,
+                        
                     }
                     
  
 
-            elif usertype == "patient":
-                sec_query = """SELECT patient_id, first_name, last_name, date_of_birth, gender, address, phone_number 
+            elif user_type == "patient":
+                sec_query = """SELECT serial_number, name, date_of_birth, gender, address, phone_number 
                                FROM patient 
-                               WHERE serial_number = %s;"""
-                cursor.execute(sec_query, (serial_number,))
+                               WHERE patient_id = %s;"""
+                cursor.execute(sec_query, (id,))
                 details = cursor.fetchone()
 
                 if details:
                     retrn_data = {
-                        "usertype": usertype,
-                        "patient_id": details[0],
+                        "usertype": id,
+                        "patient_id":id,
                         "first_name": details[1],
-                        "last_name": details[2],
-                        "date_of_birth": details[3],
-                        "gender": details[4],
-                        "address": details[5],
-                        "phone_number": details[6],
+                        "date_of_birth": details[2],
+                        "gender": details[3],
+                        "address": details[4],
+                        "phone_number": details[5],
                         "email": email,
-                        "username": username,
+                        
                     }
                    
 

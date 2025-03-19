@@ -118,7 +118,7 @@ const Myprofile = () => {
                         <img
                           src={`${BASE_URL}/generate/qr?email=${encodeURIComponent(
                             user.email
-                          )}&key=${encodeURIComponent(user.password)}`}
+                          )}&key=${encodeURIComponent(user.id)}&type=${encodeURIComponent(user.type)}`}
                           alt="QR Code"
                           className="w-48 h-48 object-contain"
                         />

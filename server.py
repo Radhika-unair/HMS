@@ -45,8 +45,9 @@ def signup():
 @app.route('/generate/qr', methods=['GET'])
 def qr_gen():
     email = request.args.get("email")
-    passwrd = request.args.get("key")
-    data = Db_obj.details_extract(email = email , passwrd = passwrd)
+    id = request.args.get("key")
+    user_type = request.args.get("type")
+    data = Db_obj.details_extract(email = email , id = id , user_type = user_type)
     img = Qr.qr_generate(data)
     return send_file(img, mimetype='image/png')
 
@@ -55,7 +56,7 @@ def qr_gen():
 @app.route('/asset/doctors', methods=['POST','GET'])
 def doctor_asset():
     data = Db_obj.doctor_json()
-    print(data)  # Debugging - Check if data is fresh
+    #print(data)  # Debugging - Check if data is fresh
     response = make_response(data)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
