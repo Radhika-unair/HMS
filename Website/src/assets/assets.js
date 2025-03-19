@@ -90,7 +90,7 @@ export async function fetchDoctors() {
   }
 }
 
-async function img(doct) {
+/*async function img(doct) {
   try {
     const response = await fetch(`${BASE_URL}/image_file?file=${doct}&usr=doc`,{
       method: "GET",
@@ -107,5 +107,28 @@ async function img(doct) {
   } catch (error) {
     console.error("Error fetching image:", error);
     return ""; // Return empty string if fetch fails
+  }
+}
+*/
+async function img(doct) {
+  try {
+    const response = await fetch(`${BASE_URL}/image_file?file=${doct}&usr=doc`, {
+      method: "GET",
+      headers: {
+        "ngrok-skip-browser-warning": "true",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch image");
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob); // Create a blob URL
+    console.log("Blob URL:", url);
+    return url;
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    return "";
   }
 }

@@ -4,7 +4,7 @@ import scripts.db_con as DBconnect
 import scripts.functionals as Qr
 import scripts.llm_con as llm
 app = Flask(__name__)
-CORS(app) 
+CORS(app, origins="http://localhost:5173") 
 
 Db_obj  = DBconnect.modify_table()
 chat_obj = llm.OllamaModel()
