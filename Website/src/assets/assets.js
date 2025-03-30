@@ -22,6 +22,7 @@ import Gynecologist from "./Gynecologist.svg";
 import Neurologist from "./Neurologist.svg";
 import Pediatricians from "./Pediatricians.svg";
 import{BASE_URL} from "../url_config"
+import search_icon from "./search.png"
 
 export const assets = {
   appointment_img,
@@ -41,6 +42,7 @@ export const assets = {
   upload_icon,
   stripe_logo,
   razorpay_logo,
+  search_icon
 };
 
 export const specialityData = [
@@ -125,7 +127,7 @@ async function img(doct) {
 
     const blob = await response.blob();
     const url = URL.createObjectURL(blob); // Create a blob URL
-    console.log("Blob URL:", url);
+    //console.log("Blob URL:", url);
     return url;
   } catch (error) {
     console.error("Error fetching image:", error);

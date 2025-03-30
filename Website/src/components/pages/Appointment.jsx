@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { AppContext } from "../../context/AppContext";
 import { assets } from "../../assets/assets";
 import RelatedDoctors from "../RelatedDoctors";
+import { BASE_URL } from "../../url_config";
 
 const Appointment = () => {
   const { docId } = useParams();
@@ -18,6 +19,7 @@ const Appointment = () => {
     const fetchDocInfo = () => {
       const doc = doctors.find((doc) => doc._id === docId);
       if (doc) setDocInfo(doc);
+      console.log(doc)
     };
     fetchDocInfo();
   }, [doctors, docId]);
@@ -36,7 +38,7 @@ const Appointment = () => {
 
         let startTime = new Date(currentDate);
         let endTime = new Date(currentDate);
-        endTime.setHours(21, 0, 0, 0); // End time is 9 PM
+        endTime.setHours(24, 0, 0, 0); // End time is 9 PM
 
         // Special handling for today
         if (i === 0) {
@@ -45,7 +47,7 @@ const Appointment = () => {
           now.setMinutes(nextMinutes, 0, 0);
           startTime = new Date(now);
         } else {
-          startTime.setHours(10, 0, 0, 0); // Other days start at 10 AM
+          startTime.setHours(9, 0, 0, 0); // Other days start at 10 AM
         }
 
         let timeSlots = [];
@@ -55,7 +57,8 @@ const Appointment = () => {
             time: startTime.toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
-              hour12: true, // Ensures AM/PM format
+              second:"2-digit",
+              hour12: false, // Ensures AM/PM format
             }),
           });
           startTime.setMinutes(startTime.getMinutes() + 30);
@@ -70,6 +73,46 @@ const Appointment = () => {
     getAvailableSlots();
   }, [docInfo]);
 
+  const handleBookAppointment = async () => {
+    if (!slotTime) {
+      alert("Please select a time slot.");
+      return;
+    }
+    
+    const userdata = JSON.parse(localStorage.getItem("currentUser") || "{}"); // Parse safely
+    if (!userdata?.id) {
+      alert("User not found! Please log in.");
+      return;
+    }
+    const appointmentData = {
+      doctorId: docId,
+      date: docSlots[slotIndex][0]?.datetime.toISOString().split("T")[0], // Selected date
+      time: slotTime,
+      userId: userdata?.id || '' // Replace with actual user ID from context or state
+    };
+  
+    try {
+      const response = await fetch(`${BASE_URL}/set/appointments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true"
+        },
+        body: JSON.stringify(appointmentData),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to book appointment");
+      }
+  
+      const data = await response.json();
+      alert(`Appointment booked successfully for ${appointmentData.date} at ${appointmentData.time}`);
+    } catch (error) {
+      console.error("Error booking appointment:", error);
+      alert("Something went wrong. Please try again.");
+    }
+  };
+  
   return (
     docInfo &&
     docSlots.length > 0 && (
@@ -164,7 +207,9 @@ const Appointment = () => {
               <p className="text-gray-500">No slots available</p>
             )}
           </div>
-          <button className="bg-primary text-white text-sm font-light px-14 py-3 rounded-full my-6">
+          <button
+            onClick={handleBookAppointment}
+            className="bg-primary text-white text-sm font-light px-14 py-3 rounded-full my-6">
             Book an Appointment
           </button>
         </div>

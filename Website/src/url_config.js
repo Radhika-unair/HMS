@@ -3,7 +3,7 @@
 
 // for local host
 export const BASE_URL =
-  "https://7f06-2409-40f3-29-3704-685d-274a-92a3-4dff.ngrok-free.app";
-  //"http://127.0.0.1:5000";
+  //"https://7f06-2409-40f3-29-3704-685d-274a-92a3-4dff.ngrok-free.app";
+  "http://127.0.0.1:5000";
 
 
