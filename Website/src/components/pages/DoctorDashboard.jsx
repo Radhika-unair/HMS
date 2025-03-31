@@ -4,7 +4,7 @@ import DoctorBedManagement from "./DoctorBedManagement";
 import PatientRecords from "./doctor/PatientRecords";
 import ScheduleManagement from "./doctor/ScheduleManagement";
 import PrescriptionManagement from "./doctor/PrescriptionManagement";
-import LabManagement from "./doctor/LabManagement";
+import ReferralSystem from "./doctor/ReferralSystem";
 import AnalyticsDashboard from "./doctor/AnalyticsDashboard";
 
 const DoctorDashboard = () => {
@@ -28,10 +28,10 @@ const DoctorDashboard = () => {
 
   const tabs = [
     { id: "analytics", label: "Dashboard", icon: "📊" },
-    { id: "patients", label: "Patient Records", icon: "👤" },
+    //{ id: "patients", label: "Patient Records", icon: "👤" },
     { id: "schedule", label: "Schedule", icon: "⏰" },
     { id: "prescriptions", label: "Prescriptions", icon: "💊" },
-    { id: "lab", label: "Lab Tests", icon: "🔬" },
+    { id: "Refer", label: "Refer", icon: "👨🏻‍⚕️" },
     { id: "beds", label: "Bed Management", icon: "🛏️" },
   ];
 
@@ -85,7 +85,7 @@ const DoctorDashboard = () => {
           {activeTab === "patients" && <PatientRecords />}
           {activeTab === "schedule" && <ScheduleManagement />}
           {activeTab === "prescriptions" && <PrescriptionManagement />}
-          {activeTab === "lab" && <LabManagement />}
+          {activeTab === "Refer" && <ReferralSystem />}
           {activeTab === "beds" && <DoctorBedManagement />}
         </div>
       </div>

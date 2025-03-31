@@ -19,7 +19,7 @@ import Footer from "./components/Footer";
 import ChatBot from "./components/ChatBot";
 import DoctorDetails from "./components/pages/DoctorDetails";
 import PatientDetails from "./components/pages/PatientDetails";
-import VisitHistoryPage from "./components/pages/VisitHistoryPage";
+//import VisitHistoryPage from "./components/pages/VisitHistoryPage";
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAuth = true }) => {
@@ -149,18 +149,7 @@ const App = () => {
           }
         />
 
-        <Route
-          path="/visit-history"
-          element={
-            <ProtectedRoute>
-              <div>
-                <Navbar />
-                <VisitHistoryPage />
-                <Footer />
-              </div>
-            </ProtectedRoute>
-          }
-        />
+        
 
         <Route
           path="/my-appointments"

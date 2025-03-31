@@ -1,185 +1,140 @@
 import { useState, useEffect } from "react";
+import { BASE_URL } from "../../url_config";
 
 const VisitHistory = () => {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedVisit, setSelectedVisit] = useState(null);
 
   useEffect(() => {
-    const loadVisitHistory = () => {
+    const fetchVisitHistory = async () => {
       try {
-        // Get current user
-        const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-        if (!currentUser) return;
-
-        // Get all appointments
-        const allAppointments = JSON.parse(localStorage.getItem("appointments") || "[]");
-        const userAppointments = allAppointments.filter(app => app.patientId === currentUser.id);
-
-        // Get all prescriptions
-        const allPrescriptions = JSON.parse(localStorage.getItem("prescriptions") || "[]");
-        const userPrescriptions = allPrescriptions.filter(pres => pres.patientId === currentUser.id);
-
-        // Get all lab tests
-        const allLabTests = JSON.parse(localStorage.getItem("labTests") || "[]");
-        const userLabTests = allLabTests.filter(test => test.patientId === currentUser.id);
-
-        // Combine appointments with their prescriptions and lab tests
-        const visitsWithDetails = userAppointments.map(appointment => {
-          const visitPrescriptions = userPrescriptions.filter(
-            pres => pres.appointmentId === appointment.id
-          );
-          const visitLabTests = userLabTests.filter(
-            test => test.appointmentId === appointment.id
-          );
-
-          return {
-            ...appointment,
-            prescriptions: visitPrescriptions,
-            labTests: visitLabTests
-          };
+        const response = await fetch(`${BASE_URL}/user/visit-history`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "ngrok-skip-browser-warning": "true",
+          },
+          body: JSON.stringify({
+            patientId: JSON.parse(localStorage.getItem("currentUser")).id,
+          }),
         });
 
-        // Sort visits by date (newest first)
-        const sortedVisits = visitsWithDetails.sort((a, b) => 
-          new Date(b.date) - new Date(a.date)
-        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch visit history");
+        }
 
-        setVisits(sortedVisits);
-      } catch (error) {
-        console.error("Error loading visit history:", error);
+        const data = await response.json();
+        setVisits(data.data);
+      } catch (err) {
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    loadVisitHistory();
+    fetchVisitHistory();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  if (loading) return <p className="text-center text-lg text-gray-700">Loading visit history...</p>;
+  if (error) return <p className="text-red-500 text-center">Error: {error}</p>;
 
   return (
-    <div className="space-y-6">
-      {visits.length === 0 ? (
-        <div className="text-center text-gray-500 py-8">
-          No visit history found
-        </div>
-      ) : (
-        visits.map((visit) => (
-          <div key={visit.id} className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Dr. {visit.doctorName}
+    <div className="p-6 max-w-7xl mx-auto">
+      <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">Visit History</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {visits.map((visit) => (
+          <div
+            key={visit.prescription_id}
+            onClick={() => setSelectedVisit(visit)}
+            className="p-6 border-l-4 border-blue-500 rounded-lg shadow-md bg-white hover:shadow-lg transition-all cursor-pointer group"
+          >
+            <div className="flex flex-col space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">
+                  {visit.doctor_name}
                 </h3>
-                <p className="text-sm text-gray-500">{visit.speciality}</p>
+                <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                  {visit.specialization}
+                </span>
               </div>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium
-                ${visit.status === 'completed' ? 'bg-green-100 text-green-800' :
-                  visit.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                  'bg-yellow-100 text-yellow-800'}`}>
-                {visit.status.charAt(0).toUpperCase() + visit.status.slice(1)}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              <div>
-                <p className="text-sm text-gray-500">Visit Date</p>
-                <p className="font-medium">{new Date(visit.date).toLocaleDateString()}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Time</p>
-                <p className="font-medium">{visit.time}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Consultation Fee</p>
-                <p className="font-medium">₹{visit.fees}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Type</p>
-                <p className="font-medium">{visit.isVideo ? "Video Call" : "In-Person"}</p>
+              <p className="text-gray-600 line-clamp-3">{visit.prescription}</p>
+              <div className="flex items-center text-sm text-gray-500 mt-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-2 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                {new Date(visit.date).toLocaleDateString()}
               </div>
             </div>
-
-            {visit.notes && (
-              <div className="mb-4">
-                <p className="text-sm text-gray-500">Notes</p>
-                <p className="text-gray-700">{visit.notes}</p>
-              </div>
-            )}
-
-            {/* Prescriptions Section */}
-            {visit.prescriptions && visit.prescriptions.length > 0 && (
-              <div className="mb-4">
-                <h4 className="text-md font-semibold text-gray-900 mb-2">Prescriptions</h4>
-                <div className="space-y-2">
-                  {visit.prescriptions.map((prescription) => (
-                    <div key={prescription.id} className="bg-gray-50 rounded p-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-medium">Date: {new Date(prescription.date).toLocaleDateString()}</p>
-                          <div className="mt-2">
-                            <p className="text-sm font-medium mb-1">Medications:</p>
-                            <ul className="list-disc list-inside text-sm text-gray-600">
-                              {prescription.medications.map((med, index) => (
-                                <li key={index}>{med.name} - {med.dosage} - {med.frequency}</li>
-                              ))}
-                            </ul>
-                          </div>
-                          {prescription.notes && (
-                            <p className="mt-2 text-sm text-gray-600">Notes: {prescription.notes}</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Lab Tests Section */}
-            {visit.labTests && visit.labTests.length > 0 && (
-              <div>
-                <h4 className="text-md font-semibold text-gray-900 mb-2">Lab Tests</h4>
-                <div className="space-y-2">
-                  {visit.labTests.map((test) => (
-                    <div key={test.id} className="bg-gray-50 rounded p-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-medium">{test.testName}</p>
-                          <p className="text-sm text-gray-500">
-                            Date: {new Date(test.date).toLocaleDateString()}
-                          </p>
-                          <p className="text-sm text-gray-600 mt-1">{test.description}</p>
-                          {test.results && (
-                            <div className="mt-2">
-                              <p className="text-sm font-medium">Results:</p>
-                              <p className="text-sm text-gray-600">{test.results}</p>
-                            </div>
-                          )}
-                        </div>
-                        <span className={`px-2 py-1 text-xs rounded-full 
-                          ${test.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                          test.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                          'bg-blue-100 text-blue-800'}`}>
-                          {test.status.charAt(0).toUpperCase() + test.status.slice(1)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
-        ))
+        ))}
+      </div>
+
+      {/* Detail Modal */}
+      {selectedVisit && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm"
+          onClick={() => setSelectedVisit(null)}
+        >
+          <div
+            className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-3xl font-bold text-gray-800">{selectedVisit.doctor_name}</h3>
+                <p className="text-lg text-blue-600 mt-1">{selectedVisit.specialization}</p>
+              </div>
+              <button
+                onClick={() => setSelectedVisit(null)}
+                className="text-gray-400 hover:text-gray-600 text-3xl transition-colors"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-xl">
+                  <p className="text-sm font-semibold text-gray-500 mb-1">Visit Date</p>
+                  <p className="text-lg text-gray-800">
+                    {new Date(selectedVisit.date).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-xl">
+                  <p className="text-sm font-semibold text-gray-500 mb-1">Prescription ID</p>
+                  <p className="text-lg text-gray-800 font-mono">{selectedVisit.prescription_id}</p>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-xl font-semibold text-gray-800 mb-4">Prescription Details</h4>
+                <pre className="whitespace-pre-wrap bg-gray-50 p-6 rounded-xl text-gray-800 font-sans leading-relaxed border border-gray-200">
+                  {selectedVisit.prescription}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
 };
 
-export default VisitHistory; 
+export default VisitHistory;

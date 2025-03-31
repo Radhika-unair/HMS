@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import BedStatus from "./BedStatus";
+import VisitHistory  from "./VisitHistory";
 import { BASE_URL } from "../../url_config";
 
 const Myprofile = () => {
@@ -16,17 +17,73 @@ const Myprofile = () => {
   const [cancelLoading, setCancelLoading] = useState(false);
   const [currentView, setCurrentView] = useState('ALL');
   const [filteredAppointments, setFilteredAppointments] = useState([]);
+  const [user_detail, setUserdetials] = useState({
+    DateOfBirth: "",
+    address: "",
+    bloodGroup: "",
+    contact: "",
+    gender: "",
+    name: "",
+    patient_id: 0,
+    });
 
   // Function to handle tab navigation
   const handleTabChange = (tab) => {
-    if (tab === "visits") {
-      // Redirect to the dedicated Visit History page
-      navigate("/visit-history");
-      return;
-    }
+    
     
     setActiveTab(tab);
   };
+  // start
+  const fetchdetail = async () => {
+    console.log("Fetching user details...");
+    setTicketLoading(true);
+    setTicketError(null);
+    
+    try {
+      const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Get user from localStorage
+      if (!currentUser || !currentUser.id) {
+        console.error("No user found in localStorage or missing user ID");
+        return;
+      }
+      
+      const response = await fetch(`${BASE_URL}/user/details`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
+        },
+        body: JSON.stringify({ patientId: currentUser.id }),
+      });
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Server response:", errorText);
+        throw new Error(`Failed to fetch details: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      setUserdetials(data.data); // Update state correctly
+      console.log("Fetched user details:", data.data);
+  
+    } catch (err) {
+      console.error("Error fetching user details:", err);
+    } finally {
+      setTicketLoading(false);
+      console.log("Tried fetching details");
+    }
+  };
+  
+  // Fetch user details when component mounts
+  useEffect(() => {
+    if (activeTab === "profile") {
+      fetchdetail();
+    }
+  }, [activeTab]);
+  useEffect(() => {
+    console.log("Updated user_detail:", user_detail);
+  }, [user_detail]);
+  
+  //end
 
   // Function to check if an appointment should be displayed based on date filter
   const filterAppointments = () => {
@@ -212,6 +269,7 @@ const Myprofile = () => {
     if (user?.id) {
       fetchScheduledAppointments();
     }
+    
   }, [user]); // Add user as dependency
 
   if (!user) {
@@ -268,63 +326,137 @@ const Myprofile = () => {
 
           {/* Tab Content */}
           <div className="p-6">
-            {activeTab === "profile" && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium leading-6 text-gray-900">
-                    Personal Information
-                  </h3>
-                  <div className="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                    <div className="sm:col-span-3">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Full name
-                      </label>
-                      <div className="mt-1">
-                        <input
-                          type="text"
-                          value={user.name}
-                          readOnly
-                          className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                        />
-                      </div>
-                    </div>
+          {activeTab === "profile" && (
+  <div className="space-y-8 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 bg-white rounded-lg shadow">
+  <div>
+    <h3 className="text-xl font-semibold leading-6 text-gray-900 border-b pb-3">
+      Personal Information
+    </h3>
+    <div className="mt-6 grid grid-cols-1 gap-y-6 gap-x-6 sm:grid-cols-6">
+      <div className="sm:col-span-3">
+        <label className="block text-sm font-medium text-gray-700">
+          Full name
+        </label>
+        <div className="mt-1">
+          <input
+            type="text"
+            value={user.name}
+            readOnly
+            className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md bg-gray-50"
+          />
+        </div>
+      </div>
+      
+      <div className="sm:col-span-3">
+        <label className="block text-sm font-medium text-gray-700">
+          Email
+        </label>
+        <div className="mt-1">
+          <input
+            type="email"
+            value={user.email}
+            readOnly
+            className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md bg-gray-50"
+          />
+        </div>
+      </div>
+      
+      <div className="sm:col-span-3">
+        <label className="block text-sm font-medium text-gray-700">
+          Date of Birth
+        </label>
+        <div className="mt-1">
+          <input
+            type="text"
+            value={user_detail.DateOfBirth || ''}
+            readOnly
+            className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md bg-gray-50"
+          />
+        </div>
+      </div>
+      
+      <div className="sm:col-span-3">
+        <label className="block text-sm font-medium text-gray-700">
+          Contact
+        </label>
+        <div className="mt-1">
+          <input
+            type="text"
+            value={user_detail.contact || ''}
+            readOnly
+            className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md bg-gray-50"
+          />
+        </div>
+      </div>
+      
+      <div className="sm:col-span-3">
+        <label className="block text-sm font-medium text-gray-700">
+          Blood Group
+        </label>
+        <div className="mt-1">
+          <input
+            type="text"
+            value={user_detail.bloodGroup || ''}
+            readOnly
+            className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md bg-gray-50"
+          />
+        </div>
+      </div>
+      
+      <div className="sm:col-span-3">
+        <label className="block text-sm font-medium text-gray-700">
+          Gender
+        </label>
+        <div className="mt-1">
+          <input
+            type="text"
+            value={user_detail.gender || ''}
+            readOnly
+            className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md bg-gray-50"
+          />
+        </div>
+      </div>
+      
+      <div className="sm:col-span-6">
+        <label className="block text-sm font-medium text-gray-700">
+          Address
+        </label>
+        <div className="mt-1">
+          <textarea
+            value={user_detail.address || ''}
+            readOnly
+            className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md bg-gray-50"
+          />
+        </div>
+      </div>
+      
+      {/* QR Code Section */}
+      <div className="sm:col-span-6 mt-4">
+        <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+          <label className="block text-sm font-medium text-gray-700 text-center mb-4">
+            Your QR Code
+          </label>
+          <div className="flex items-center justify-center">
+            <div className="p-2 bg-white rounded-lg shadow-sm">
+              <img
+                src={`${BASE_URL}/generate/qr?email=${encodeURIComponent(
+                  user.email
+                )}&key=${encodeURIComponent(user.id)}&type=${encodeURIComponent(user.type)}`}
+                alt="QR Code"
+                className="w-56 h-56 object-contain"
+              />
+            </div>
+          </div>
+          <p className="mt-4 text-sm text-gray-500 text-center">
+            Scan this QR code to access your profile information
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-                    <div className="sm:col-span-3">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Email
-                      </label>
-                      <div className="mt-1">
-                        <input
-                          type="email"
-                          value={user.email}
-                          readOnly
-                          className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                        />
-                      </div>
-                    </div>
-
-                    {/* QR Code Section */}
-                    <div className="sm:col-span-6">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Your QR Code
-                      </label>
-                      <div className="mt-1 flex items-center justify-center">
-                        <img
-                          src={`${BASE_URL}/generate/qr?email=${encodeURIComponent(
-                            user.email
-                          )}&key=${encodeURIComponent(user.id)}&type=${encodeURIComponent(user.type)}`}
-                          alt="QR Code"
-                          className="w-48 h-48 object-contain"
-                        />
-                      </div>
-                      <p className="mt-2 text-sm text-gray-500">
-                        Scan this QR code to access your profile information
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+)}
 
             {activeTab === "scheduled" && (
               <div className="min-h-[400px] bg-white">
@@ -447,7 +579,7 @@ const Myprofile = () => {
               </div>
             )}
 
-            {activeTab === "visits" && <VisitHistory />}
+            {activeTab === "visits" && <VisitHistory  />}
             {activeTab === "beds" && <BedStatus />}
           </div>
         </div>

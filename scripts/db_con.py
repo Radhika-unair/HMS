@@ -3,6 +3,7 @@ import json
 import base64
 import bcrypt
 import datetime as datetime
+from datetime import timedelta
 class modify_table:
     def __init__(self):
         with open("config\database.json","r") as f:
@@ -365,9 +366,27 @@ class modify_table:
             cursor = connect.cursor(buffered=True)
             connect.commit()
             app_date_time = f"{app_data['date']} {app_data['time']}"
+            query = "SELECT block , app_limit FROM app_refer_limit WHERE doctor_id = %s"
+            cursor.execute(query, (app_data['doctorId'],))
+            limt_check = cursor.fetchone()
+            if limt_check is not None:
+                if limt_check[0]==1:
+                    print("Cannot book appointment on this date and time as it is blocked")
+                    return {"status": "fail", "message": "Cannot book appointment doctor is blocked"}
+            query_check = "SELECT COUNT(*) FROM appointment WHERE Doc_id =%s AND DATE(ap_date) = %s"
+            cursor.execute(query_check, (app_data['doctorId'],app_data['date'] ))
+            
+            block_check = cursor.fetchone()
+            #print(block_check[0],limt_check[1])
+            if (block_check and limt_check) is not None:
+                if block_check[0] >= limt_check[1]+1:
+                    print("Cannot book appointment on this date and time as it exceeds the maximum limit")
+                    return {"status": "fail", "message": "Cannot book appointment on this date and time as it exceeds the maximum limit"}
             query_check = "SELECT COUNT(*) FROM block_date WHERE doc_id =%s AND date = %s"
             cursor.execute(query_check, (app_data['doctorId'], app_data['date']))
-            if cursor.fetchone()[0] > 0:
+            ret_data = cursor.fetchone()[0]
+            if ret_data > 0:
+                print(ret_data)
                 print("Cannot book appointment on this date and time as it is blocked")
                 return {"status": "fail", "message": "Cannot book appointment on this date and time as it is blocked"}
             query_check = "SELECT COUNT(*) FROM appointment WHERE patient_id =%s AND Doc_id =%s AND ap_date = %s"
@@ -511,7 +530,7 @@ class modify_table:
             connect = self.get_db_connection()
             connect.commit()
             cursor = connect.cursor(buffered=True)
-            query = """SELECT date FROM block_date WHERE doc_id = %s AND date > CURDATE();"""
+            query = """SELECT date FROM block_date WHERE doc_id = %s AND date >= CURDATE();"""
             cursor.execute(query,( int(data['doctorId']),))
             result = cursor.fetchall()
             
@@ -527,6 +546,537 @@ class modify_table:
             if cursor:
                 cursor.close()
                 connect.close()
+
+##################################################################################################
+
+#    Admin panel setings
             
-#myobj = modify_table()
-#myobj.doctor_json()
+
+    def admin_auth(self,data):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            query = """SELECT serial_number , hashid FROM users WHERE email = %s AND usertype = 'admin' """
+            cursor.execute(query,( data["email"],))
+            result = cursor.fetchone()
+            if result:
+                stored_hash_bytes = result[1].encode('utf-8')
+                
+                if  bcrypt.checkpw(data["password"].encode('utf-8'), stored_hash_bytes):
+                    print("hash sucsess succeeded")
+                    return {"status": "success","id":result[0]}
+            return {"status": "fail","message":"Admin Not Exist" }    
+            
+        except Exception as e:
+            print("admin_auth Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+
+
+
+####   Doctor adding to refer list who are not in the list 
+
+    def limitation_doctors_not_set(self):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            query = """SELECT  doctor_id , name , specialization
+                            FROM doctor
+                            WHERE doctor_id NOT IN (SELECT doctor_id FROM app_refer_limit);"""
+            cursor.execute(query,)
+            result = cursor.fetchall()
+            if result:
+                data =  [{"id": row[0],"name":row[1],"specialization":row[2]} for row in result]
+                return {"status": "success","data":data}
+            return {"status": "fail","message":"no result is fetched" }
+            
+        except Exception as e:
+            print("limitation_doctors_not_set Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+
+    def limitations_doctors_add(self,data):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            query = """INSERT INTO app_refer_limit (doctor_id , refer_limit , app_limit) VALUES (%s , %s, %s);"""
+            cursor.execute(query,( data["doctor_id"],data["refer_limit"],data["appointment_limit"],))
+            connect.commit()
+            return {"status": "success","message":"Doctor Added Successfully" }
+            
+        except Exception as e:
+            print("limitations_doctors_add Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+
+
+    def limitations_doctors_get(self):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            query = """SELECT doctor_id , refer_limit ,app_limit , block FROM app_refer_limit"""
+            cursor.execute(query,)
+            result = cursor.fetchall()
+            if result:
+                data = []
+                for row in result:
+                    query = "SELECT name , specialization FROM doctor WHERE doctor_id = %s"
+                    cursor.execute(query,(row[0],))
+                    doc_det = cursor.fetchone()
+                    data.append({"id": row[0],"name":doc_det[0],"specialization":doc_det[1],"refer_limit":row[1],"appointment_limit":row[2] , "block":row[3]})
+                return {"status": "success","data":data, "message":"Doctor Added Successfully" }
+            
+            return {"status": "fail","message":"no doctor retreived" }
+        except Exception as e:
+            print("limitations_doctors_add Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+    
+    def limitations_doctors_update(self , data):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            query = """UPDATE app_refer_limit SET refer_limit = %s , app_limit = %s WHERE doctor_id = %s;"""
+            cursor.execute(query,( data["refer_limit"],data["appointment_limit"],data["doctor_id"],))
+            connect.commit()
+            return {"status": "success","message":"Doctor Limit Updated Successfully" }
+            
+        except Exception as e:
+            print("limitations_doctors_update Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+
+    def block_doctor_admin(self,data):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            if data["block"]==1:
+                query = """UPDATE app_refer_limit SET block = %s WHERE doctor_id = %s;"""
+                cursor.execute(query,(
+                    int(1),
+                    int(data['doctor_id'])))
+            if data["block"]==0:
+                query = """UPDATE app_refer_limit SET block = %s WHERE doctor_id = %s;"""
+                cursor.execute(query,(
+                    int(0),
+                    int(data['doctor_id'])))
+            
+            connect.commit()
+            return {"status": "success","message":"Doctor Blocked Successfully" }
+            
+        except Exception as e:
+            print("block_date_admin Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+
+    def referral_add(self,data):
+        try:
+            print(data, "in db_con reeferal_add")
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            query = """INSERT INTO refer (from_doc , to_doc , disc , pat_id, status, p_app) VALUES (%s , %s, %s, %s ,%s,%s);"""
+            cursor.execute(query,( int(data["currentdoc"]),int(data["doctor_id"]),data["description"],int(data["patient_id"]), int(0) , int(data["app_id"])))
+            connect.commit()
+            return {"status": "success","message":"Referral Added Successfully" }
+            
+        except Exception as e:
+            print("referral_add Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+
+    def bed_status(self):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            query = """SELECT bed_id , room_number FROM bed_data"""
+            cursor.execute(query,)
+            result = cursor.fetchall()
+            if result:
+                bed = []
+                data = []
+                for row in result:
+                    #print("bed_id =", row[0])
+                    bed.append({"bed_id": row[0], "room_number": row[1]})
+                    query = "SELECT * FROM bed_alloc WHERE Bed_id = %s"
+                    cursor.execute(query,(row[0],))
+                    bed_data = cursor.fetchall()
+                    #print(bed_data)
+                    if bed_data:
+                        for subrow in bed_data:
+                            data.append(
+                            {
+                                "bed_id": row[0],
+                                "room_number": row[1],
+                                "date":subrow[3].strftime("%Y-%m-%d")
+
+                            }
+                        )
+                    
+                return {"status": "success","Bed_data":bed, "booked":data, "message":"Doctor Bed Status Retreived" }
+            
+            return {"status": "fail","message":"no doctor retreived" }
+        except Exception as e:
+            print("bed_status Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+    def bed_allocate(self, data):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            query = """INSERT INTO bed_alloc (Bed_id , doc_id , pat_id , date ,status , app_id) VALUES (%s , %s, %s, %s , %s,%s);"""
+            cursor.execute(query,( int(data["bed_id"]),int(data["currentdoc"]),int(data["patient_id"]), data["date"],int(0) ,data["appointment_id"]))
+            connect.commit()
+            return {"status": "success","message":"Bed Allocated Successfully" }
+            
+        except Exception as e:
+            print("bed_allocate Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+
+    def admin_appointment_get_all(self):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            query = """SELECT ap_id, Doc_id , patient_id , ap_date , status FROM appointment"""
+            cursor.execute(query,)
+            result = cursor.fetchall()
+            if result:
+                data = []
+                for row in result:
+                    #print(11111,row)
+                    query = "SELECT name,  specialization FROM doctor WHERE doctor_id = %s"
+                    id = int(row[1])
+                    cursor.execute(query,(id,))
+                    
+                    doc_det = cursor.fetchone()
+                    #print(2222,doc_det)
+                    query = "SELECT name from patient where patient_id = %s"
+                    id = int(row[2])
+                    cursor.execute(query,(id,))
+                    pat_det = cursor.fetchone()
+                    #print(3333,pat_det)
+                    
+                    data.append({
+                        "app_id": row[0],
+                        "patient_id":row[2],
+                        "patient_name":pat_det[0],
+                        "doctor_name":doc_det[0],
+                        "specialization":doc_det[1],
+                        "doctor_id":row[1],
+                        "date":row[3].strftime("%Y-%m-%d"),
+                        "status":row[4]
+                        })
+                return {"status": "success","data":data}
+            return {"status": "fail","message":"no result is fetched" }
+            
+        except Exception as e:
+            print("admin_appointment_get_all Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+    def admin_appointment_update(self, data):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            demo_date = data["date"]+" 14:00:00"
+            query = """UPDATE appointment SET status = %s, Doc_id = %s , ap_date = %s WHERE ap_id = %s;"""
+            cursor.execute(query,( data["status"],int(data["doctor_id"]),demo_date , int(data["app_id"])))
+            connect.commit()
+            return {"status": "success","message":"Appointment Status Updated Successfully" }
+            
+        except Exception as e:
+            print("admin_appointment_update Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+    def get_all_refer_req(self):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            query = """SELECT referid, from_doc , to_doc , disc , pat_id, status, p_app FROM refer"""
+            cursor.execute(query,)
+            result = cursor.fetchall()
+            if result:
+                data = []
+                for row in result:
+                    #print(11111,row)
+                    query = "SELECT name,  specialization FROM doctor WHERE doctor_id = %s"
+                    id = int(row[1])
+                    cursor.execute(query,(id,))
+                    
+                    f_doc_det = cursor.fetchone()
+                    query = "SELECT name,  specialization FROM doctor WHERE doctor_id = %s"
+                    id = int(row[2])
+                    cursor.execute(query,(id,))
+                    
+                    t_doc_det = cursor.fetchone()
+                    #print(2222,doc_ref)
+                    query = "SELECT name from patient where patient_id = %s"
+                    id = int(row[4])
+                    cursor.execute(query,(id,))
+                    pat_det = cursor.fetchone()
+                    data.append({
+                        "referid": row[0],
+                        "from_doc_id":row[1],
+                        "to_doc_id":row[2],
+                        "from_doctor":f_doc_det[0],
+                        "from_specialization":f_doc_det[1],
+                        "to_doctor":t_doc_det[0],
+                        "to_specialization":t_doc_det[1],
+                        "patient_id":row[4],
+                        "patient_name":pat_det[0],
+                        "description":row[3],
+                        "status":int(row[5]),
+                        "app_id":row[6]
+    
+                    })
+                return {"status": "success","data":data}
+            return {"status": "fail","message":"no result is fetched" }
+        except Exception as e:
+            print("get_all_refer_req Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+    def accept_referal( self ,data):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            today = datetime.datetime.now()
+            dte = (today + timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S')
+            if data['status']==1:
+                query = """INSERT INTO appointment (patient_id, Doc_id, ap_date, status, refer) 
+                       VALUES (%s, %s, %s, %s, %s);"""
+                cursor.execute(query,(data["patient_id"],data["doc_id"],dte,'pending',1))
+                
+                connect.commit()
+                query = """UPDATE refer SET status = %s WHERE referid = %s;"""
+                cursor.execute(query,('1',int(data["referid"])))
+                connect.commit()
+            
+                return {"status": "success","message":"Referal Accepted Successfully" }
+            query = """UPDATE refer SET status = %s WHERE referid = %s;"""
+            cursor.execute(query,('-1',int(data["referid"])))
+            connect.commit()
+            return {"status": "success","message":"Referal Accepted Successfully" }
+            
+        except Exception as e:
+            print("accept_referal Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+
+    def get_all_beds_req(self):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            query = """SELECT * FROM bed_alloc"""
+            cursor.execute(query,)
+            result = cursor.fetchall()
+            if result:
+                data = []
+                for row in result:
+                    query = "SELECT name,  specialization FROM doctor WHERE doctor_id = %s"
+                    cursor.execute(query,(int(row[5]),))
+                    doc_det = cursor.fetchone()
+                    query = "SELECT name from patient where patient_id = %s"
+                    cursor.execute(query,(int(row[2]),))
+                    pat_det = cursor.fetchone()
+                    #print(row)
+                    data.append({
+                        "alloc_id":row[0],
+                        "bed_id": row[1],
+                        "paitent_id": row[2],
+                        "patient_name": pat_det[0],
+                        "doctor_name": doc_det[0],
+                        "specialization": doc_det[1],
+                        "date": row[3].strftime("%Y-%m-%d"),
+                        "doctor_id": row[5],
+                        "appointment_id": row[6],
+                        "status": int(row[4])
+                        })
+                return {"status": "success","data":data}
+            return {"status": "fail","message":"no result is fetched" }
+            
+        except Exception as e:
+            print("get_all_beds Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+
+    def accept_bed_req(self , data):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            today = datetime.datetime.now()
+            
+           
+            query = """UPDATE bed_alloc SET status = %s WHERE alloc_id = %s;"""
+            cursor.execute(query,(str(data["status"]),int(data['alloc_id']),))
+            connect.commit()
+            return {"status": "success","message":"Bed Allocation Accepted Successfully" }
+        except Exception as e:
+            print("accept_bed_req Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+
+    def get_user_details(self,data):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            query = """SELECT * FROM patient WHERE patient_id = %s"""
+            cursor.execute(query,(int(data["patientId"]),))
+            result = cursor.fetchone()
+            #print(result)
+            if result:
+                data = {
+                    "patient_id":result[0],
+                    "name":result[2],
+                    "DateOfBirth":result[3].strftime("%Y-%m-%d"),
+                    "gender":result[5],
+                    "address":result[5],
+                    "contact":result[6],
+                    "bloodGroup":result[7]
+                    
+                }
+                return {"status": "success","data":data}
+            return {"status": "fail","message":"no result is fetched" }
+            
+        except Exception as e:
+            print("get_user_details Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+
+    def get_user_visit_history(self,data):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            query = """SELECT * FROM prescription WHERE patient_id = %s"""
+            cursor.execute(query,(int(data["patientId"]),))
+            result = cursor.fetchall()
+            #print(result)
+            if result:
+                data = []
+                for row in result:
+                    querr= "SELECT name ,specialization FROM doctor WHERE doctor_id = %s"
+                    cursor.execute(querr,(int(row[2]),))
+                    doc_det = cursor.fetchone()
+                    query = "SELECT name FROM patient WHERE patient_id = %s"
+                    cursor.execute(query,(int(row[1]),))
+                    pat_det = cursor.fetchone()
+                    data.append({
+                        "prescription_id":row[0],
+                        "patient_id":row[1],
+                        "doctor_id":row[2],
+                        "doctor_name":doc_det[0],
+                        "patient_name":pat_det[0],
+                        "specialization":doc_det[1],
+                        "prescription":row[4],
+                        "date":row[5].strftime("%Y-%m-%d")
+                        
+                        })
+                    return {"status": "success","data":data}
+            return {"status": "fail", }
+        except Exception as e:
+            print("get_user_visit_history Error: ",e)
+            return {"status": "fail","message":""}
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()
+
+    def get_user_bed_details(self , data):
+        try:
+            connect = self.get_db_connection()
+            connect.commit()
+            cursor = connect.cursor(buffered=True)
+            query = """SELECT * FROM bed_alloc WHERE pat_id = %s"""
+            cursor.execute(query,(int(data["patientId"]),))
+            result = cursor.fetchall()
+            #print(result)
+            if result:
+                data = []
+                for row in result:
+                    #print(row)
+                    query = "SELECT name,  specialization FROM doctor WHERE doctor_id = %s"
+                    cursor.execute(query,(int(row[5]),))
+                    doc_det = cursor.fetchone()
+                    data.append({
+                        "alloc_id":row[0],
+                        "bed_id":row[1],
+                        "patient_id":row[2],
+                        "date":row[3].strftime("%Y-%m-%d"),
+                        "doctor":doc_det[0],
+                        "specialization": doc_det[1],
+                        "appointment_id":row[6],
+                        "status": row[4]
+                    })
+                return {"status": "success","data":data}
+            return {"status": "fail","message":"no result is fetched" }
+            
+        except Exception as e: 
+            print("get_user_bed_details Error: ",e)
+            return {"status": "fail","message":e }
+        finally:
+            if cursor:
+                cursor.close()
+                connect.close()

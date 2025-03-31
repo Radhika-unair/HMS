@@ -1,52 +1,45 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { BASE_URL } from "../../url_config";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Clear any existing auth data
-    localStorage.removeItem("currentUser");
-    localStorage.removeItem("currentAdmin");
-    
-    // Initialize admin account if it doesn't exist
-    const admins = JSON.parse(localStorage.getItem("admins") || "[]");
-    if (admins.length === 0) {
-      localStorage.setItem("admins", JSON.stringify([
-        {
-          email: "admin@hospital.com",
-          password: "admin123",
-          role: "admin"
-        }
-      ]));
-    }
-  }, []);
-
-  const handleAdminLogin = (e) => {
+  const handleAdminLogin = async (e) => {
     e.preventDefault();
     setError("");
-
-    // Basic validation
-    if (!email || !password) {
-      setError("Please fill in all fields");
-      return;
-    }
+    setLoading(true);
 
     try {
-      const admins = JSON.parse(localStorage.getItem("admins") || "[]");
-      const admin = admins.find(a => a.email === email && a.password === password);
+      const response = await fetch(`${BASE_URL}/admin/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data["status"]==="success") {
 
-      if (admin) {
-        localStorage.setItem("currentAdmin", JSON.stringify(admin));
+        localStorage.setItem("currentAdmin", JSON.stringify([
+          {
+            email: email,
+            id: data["id"],
+            role: "admin"
+          }
+        ]));
         navigate("/admin/dashboard");
       } else {
-        setError("Invalid admin credentials");
+        setError(data.message || "Invalid credentials");
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -85,8 +78,9 @@ const AdminLogin = () => {
         <button 
           type="submit"
           className="bg-primary text-white w-full py-2 rounded-md text-base hover:bg-primary/90 transition-colors"
+          disabled={loading}
         >
-          Login as Admin
+          {loading ? "Logging in..." : "Login as Admin"}
         </button>
         <p className="w-full text-center">
           <span
@@ -101,4 +95,4 @@ const AdminLogin = () => {
   );
 };
 
-export default AdminLogin; 
+export default AdminLogin;

@@ -157,7 +157,7 @@ def doctor_dash():
 def app_data():
     try:
         id = request.args.get("doctorId")
-        #print(data)
+        #sprint(data)
     
         print(id)
         data = Db_obj.get_appoint_data(id)
@@ -226,5 +226,146 @@ def fetch_block_date():
     print(result)
     return jsonify(result), 200 
 
+################################################################################################
+
+###              Admin
+
+
+@app.route("/admin/login", methods=["POST"])
+def admin_login():
+    data = request.get_json()
+    print(data)
+    result = Db_obj.admin_auth(data)
+    print(result)
+    return jsonify(result), 200
+
+
+@app.route("/admin/refer/exist", methods=["POST","GET"])
+def admin_refer_exist():
+    data = Db_obj.limitation_doctors_not_set()
+    #print(data)
+    return jsonify(data), 200
+
+@app.route("/admin/refer/add",  methods = ["POST"])
+def admin_refer_add():
+    data = request.get_json()
+    
+    result = Db_obj.limitations_doctors_add(data)
+    #print(result)
+    return jsonify(result), 200
+# get all doctors 
+@app.route("/admin/refer/get", methods=["POST"])
+def admin_refer_get():
+    #data = request.get_json()
+    result = Db_obj.limitations_doctors_get()
+    #print(result)
+    return jsonify(result), 200
+
+@app.route("/admin/refer/update", methods=["POST"])
+def admin_refer_update():
+    data = request.get_json()
+    #print(data)
+    result = Db_obj.limitations_doctors_update(data)
+    #print(result)
+    
+    return jsonify(result), 200
+@app.route("/admin/refer/block", methods=["POST"])
+def admin_refer_block():
+    data = request.get_json()
+    #print(data)
+    result = Db_obj.block_doctor_admin(data)
+    #print(result)
+    return jsonify(result), 200
+
+
+@app.route("/referrals/add", methods = ["POST"])
+def referral_add_request():
+    data = request.get_json()
+    #print(data)
+    result = Db_obj.referral_add(data)
+    #print(result)
+    return jsonify(result), 200
+
+@app.route("/bed_request/get_details", methods=["POST"])
+def bed_get_details():
+    result = Db_obj.bed_status()
+    #print(result)
+    return jsonify(result), 200
+
+@app.route("/bed_request/allocate", methods=["POST"])
+def bed_reqest():
+    data = request.get_json()
+    #print(data)
+    result = Db_obj.bed_allocate(data)
+    #print(result)
+    return jsonify({"status":"success"}), 200
+
+
+##### admin appointment management
+
+@app.route("/admin/appointment/get_all", methods=["POST"])
+def admin_appointment_get_all():
+    data = request.get_json()
+    
+    result = Db_obj.admin_appointment_get_all()
+    #print(result)
+    return jsonify(result), 200
+@app.route("/admin/appointment/update" , methods=["POST"])
+
+def admin_appointment_update():
+    data = request.get_json()
+    #print(data)
+    result = Db_obj.admin_appointment_update(data)
+    print(result)
+    return jsonify({"status":"success"}), 200
+###
+
+## admin managing referal system 
+
+@app.route("/admin/refer_appointments/getall", methods=["POST"])
+def admin_referal_get():
+    result = Db_obj.get_all_refer_req()
+    return jsonify(result) , 200
+
+@app.route("/admin/refer_appointments/update_status", methods=["POST"])
+def admin_referal_accept():
+    data = request.get_json()
+    print(data)
+    result = Db_obj.accept_referal(data)
+    return jsonify(result) , 200
+@app.route("/admin/bed/get_all", methods=["POST"])
+
+def admin_bed_get():
+    result = Db_obj.get_all_beds_req()
+    #print(result)
+    return jsonify(result) , 200
+@app.route("/admin/bed/update_status", methods=["POST"])
+
+def admin_bed_update():
+    data = request.get_json()
+    result = Db_obj.accept_bed_req(data)
+    print(result)
+    return jsonify(result) , 200
+    
+@app.route("/user/details", methods=["POST"])
+def user_details():
+    data = request.get_json()
+    result = Db_obj.get_user_details(data)
+    print(result)
+    return jsonify(result) , 200
+
+@app.route("/user/visit-history", methods=["POST"])
+def user_visit_history():
+    data = request.get_json()
+    result = Db_obj.get_user_visit_history(data)
+    #print(result)
+    return jsonify(result) , 200
+
+@app.route("/user/beds_details" , methods=["POST"])
+def user_bed():
+    data = request.get_json()
+    result = Db_obj.get_user_bed_details(data)
+    print(result)
+    return jsonify(result) , 200
 if __name__ == '__main__':
     app.run(host='0.0.0.0',debug=True)

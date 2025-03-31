@@ -24,25 +24,37 @@ const ScheduleManagement = () => {
 
         if (!response.ok) throw new Error(`Failed to fetch: ${response.status}`);
         const data_full = await response.json();
-        const blockedDates = data_full.result.map(dateStr => new Date(dateStr));
 
+        // Convert to "YYYY-MM-DD" format to avoid timezone issues
+        const blockedDates = data_full.result.map(dateStr => dateStr);
+        
         setBlockoutDates(blockedDates);
         localStorage.setItem('blockoutDates', JSON.stringify(blockedDates));
       } catch (err) {
         setError(err.message);
         const cachedDates = JSON.parse(localStorage.getItem('blockoutDates') || '[]');
-        setBlockoutDates(cachedDates.map(date => new Date(date)));
+        setBlockoutDates(cachedDates);
       } finally {
         setLoading(false);
       }
     };
+
     fetchBlockoutDates();
   }, []);
 
-  const formatDate = date => date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  const addDays = (date, days) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+  const formatDate = date => new Date(date).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
+
+  const addDays = (date, days) => {
+    const newDate = new Date(date);
+    newDate.setDate(newDate.getDate() + days);
+    return newDate.toISOString().split('T')[0]; // Keep only "YYYY-MM-DD"
+  };
+
   const generateFutureDays = () => Array.from({ length: 60 }, (_, i) => addDays(new Date(), i));
-  const isSameDay = (d1, d2) => d1.toDateString() === d2.toDateString();
+
+  // Compare by "YYYY-MM-DD" format to avoid time zone issues
+  const isSameDay = (d1, d2) => d1 === d2;
+
   const isDateBlocked = date => blockoutDates.some(blocked => isSameDay(blocked, date));
 
   const handleBlockDate = async () => {
@@ -51,19 +63,28 @@ const ScheduleManagement = () => {
       const currentDoctor = JSON.parse(localStorage.getItem('currentDoctor'));
       if (!currentDoctor?.id) throw new Error("Doctor not found");
 
+      const dateStr = confirmationDate; // Already in "YYYY-MM-DD" format
+
       const response = await fetch(`${BASE_URL}/doc/block`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
-        body: JSON.stringify({ doctorId: currentDoctor.id, date: confirmationDate.toISOString().split('T')[0] })
+        body: JSON.stringify({ doctorId: currentDoctor.id, date: dateStr })
       });
 
       if (!response.ok) throw new Error(`Failed to block: ${response.status}`);
-      setBlockoutDates(prev => [...prev, confirmationDate]);
-      localStorage.setItem('blockoutDates', JSON.stringify([...blockoutDates, confirmationDate]));
-      setPopupMessage(`Date Blocked: ${formatDate(confirmationDate)}`);
+
+      // Update state with new blocked date
+      setBlockoutDates(prev => {
+        const updatedDates = [...prev, dateStr];
+        localStorage.setItem('blockoutDates', JSON.stringify(updatedDates));
+        return updatedDates;
+      });
+
+      setPopupMessage(`Date Blocked: ${formatDate(dateStr)}`);
     } catch (error) {
       setPopupMessage(`Error: ${error.message}`);
     }
+
     setTimeout(() => setPopupMessage(null), 3000);
     setConfirmationDate(null);
   };
@@ -78,13 +99,14 @@ const ScheduleManagement = () => {
             <div className="text-gray-600 text-sm">{formatDate(day).split(',')[1]}</div>
             <button
               onClick={() => setConfirmationDate(day)}
-              className={`mt-2 px-3 py-1 text-sm rounded-lg shadow-sm ${isDateBlocked(day) ? 'bg-gray-400' : 'bg-blue-500 text-white'}`}
+              className={`mt-2 px-3 py-1 text-sm rounded-lg shadow-sm ${isDateBlocked(day) ? 'bg-red-400' : 'bg-blue-500 text-white'}`}
             >
               {isDateBlocked(day) ? 'Blocked' : 'Block Date'}
             </button>
           </div>
         ))}
       </div>
+
       {confirmationDate && (
         <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
           <div className="bg-white p-6 rounded-lg shadow-lg">
@@ -97,6 +119,7 @@ const ScheduleManagement = () => {
           </div>
         </div>
       )}
+
       {popupMessage && <div className="fixed top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded shadow">{popupMessage}</div>}
     </div>
   );

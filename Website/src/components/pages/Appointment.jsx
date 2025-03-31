@@ -79,16 +79,27 @@ const Appointment = () => {
       return;
     }
     
-    const userdata = JSON.parse(localStorage.getItem("currentUser") || "{}"); // Parse safely
+    const userdata = JSON.parse(localStorage.getItem("currentUser") || "{}");
     if (!userdata?.id) {
       alert("User not found! Please log in.");
       return;
     }
+  
+    // Calculate the selected date based on slotIndex (today + slotIndex days)
+    const selectedDate = new Date();
+    selectedDate.setDate(selectedDate.getDate() + slotIndex);
+    
+    // Format date in local timezone (YYYY-MM-DD)
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+  
     const appointmentData = {
       doctorId: docId,
-      date: docSlots[slotIndex][0]?.datetime.toISOString().split("T")[0], // Selected date
+      date: formattedDate, // Use locally formatted date
       time: slotTime,
-      userId: userdata?.id || '' // Replace with actual user ID from context or state
+      userId: userdata?.id || ''
     };
   
     try {
