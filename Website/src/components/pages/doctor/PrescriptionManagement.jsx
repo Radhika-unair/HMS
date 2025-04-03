@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import search_icon from "../../../assets/search.png";
 import { BASE_URL } from "../../../url_config";
+import VisitHistory from "../doctor/DoctorViewHystory";
 
 const PrescriptionManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -9,6 +10,7 @@ const PrescriptionManagement = () => {
   const [filteredAppointments, setFilteredAppointments] = useState([]);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [prescription, setPrescription] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
 
   // Load appointments from local storage when the component mounts
   useEffect(() => {
@@ -43,6 +45,12 @@ const PrescriptionManagement = () => {
     setSelectedAppointment(appointment);
     setFilteredAppointments([]); // Hide appointment list
   };
+  const toggleHistory = () => {
+    setShowHistory(!showHistory);
+  };
+  useEffect(() => {
+    setShowHistory(false); // Reset history when appointment changes
+  }, [selectedAppointment]);
 
   // Handle prescription submission
   const handleSavePrescription = async () => {
@@ -133,6 +141,12 @@ const PrescriptionManagement = () => {
             Save Prescription
             </button>
             <button 
+              className="bg-blue-500 text-white rounded-md px-6 py-2 w-1/2 mr-2"
+              onClick={toggleHistory}
+            >
+              {showHistory ? "Hide History" : "View History"}
+            </button>
+            <button 
               className="bg-red-500 text-white rounded-md px-6 py-2 w-1/2 ml-2"
               onClick={() => {
                 setSelectedAppointment(null);
@@ -141,7 +155,14 @@ const PrescriptionManagement = () => {
             >
             Cancel
             </button>
+            
           </div>
+        </div>
+      )}
+      {/* Render VisitHistory component when showHistory is true */}
+      {selectedAppointment && showHistory && (
+        <div className="mt-4 border p-4 rounded-lg shadow-md">
+          <VisitHistory patientId={selectedAppointment.patient_id} />
         </div>
       )}
     </div>

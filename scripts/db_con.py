@@ -261,12 +261,13 @@ class modify_table:
                 self.connect.reconnect()
         self.connect.commit()
         try:
+            print("deltails \t",data)
             cursor = self.connect.cursor(buffered=True)
             if data["usertype"] == "doctor":
                 query = """UPDATE doctor 
-                               SET about = %s , specialization = %s, phone_number = %s, add_line1 = %s, add_line2 = %s, fees = %s 
+                               SET about = %s , specialization = %s, phone_number = %s, add_line1 = %s, add_line2 = %s, fees = %s ,experience = %s ,degree =%s
                                WHERE doctor_id = %s;"""
-                cursor.execute(query, (data["bio"],data["speciality"], data["phone_number"], data["address_line1"], data["address_line2"], data["fees"], data["userId"]))
+                cursor.execute(query, (data["bio"],data["speciality"], data["phone_number"], data["address_line1"], data["address_line2"], data["fees"],str(data['experience']) ,str(data["degree"]), data["userId"]))
             if data["usertype"] == "patient":
                 em = str(data["emergencyContact"])+"\t"+str(data["emergencyPhone"])
                 query = """UPDATE patient 
@@ -432,7 +433,7 @@ class modify_table:
                         "appointmentId": row[0],
                         "Doctor":doc_det[0],
                         "specialization": doc_det[1],
-                        "fees": int(doc_det[2]),
+                        "fees": int(doc_det[2]) if doc_det[2] != None  else 0 ,
                         "doctorId": row[1],
                         "patientId": row[2],
                         "booked_date": row[3].strftime("%Y-%m-%d %H:%M:%S"),
@@ -700,7 +701,7 @@ class modify_table:
             connect.commit()
             cursor = connect.cursor(buffered=True)
             query = """INSERT INTO refer (from_doc , to_doc , disc , pat_id, status, p_app) VALUES (%s , %s, %s, %s ,%s,%s);"""
-            cursor.execute(query,( int(data["currentdoc"]),int(data["doctor_id"]),data["description"],int(data["patient_id"]), int(0) , int(data["app_id"])))
+            cursor.execute(query,( int(data["currentdoc"]),int(data["doctor_id"]),data["description"],int(data["patient_id"]), '0' , int(data["app_id"])))
             connect.commit()
             return {"status": "success","message":"Referral Added Successfully" }
             
@@ -988,7 +989,7 @@ class modify_table:
                     "patient_id":result[0],
                     "name":result[2],
                     "DateOfBirth":result[3].strftime("%Y-%m-%d"),
-                    "gender":result[5],
+                    "gender":result[4],
                     "address":result[5],
                     "contact":result[6],
                     "bloodGroup":result[7]
@@ -1034,7 +1035,7 @@ class modify_table:
                         "date":row[5].strftime("%Y-%m-%d")
                         
                         })
-                    return {"status": "success","data":data}
+                return {"status": "success","data":data}
             return {"status": "fail", }
         except Exception as e:
             print("get_user_visit_history Error: ",e)

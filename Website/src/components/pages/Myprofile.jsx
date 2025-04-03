@@ -511,7 +511,7 @@ const Myprofile = () => {
                                 <p className="text-sm text-gray-500">Book ID: {appointment.appointmentId}</p>
                                 <p className="text-sm text-gray-500">Appointment Date: {appointment.time}</p>
                                 <p className="text-sm text-gray-500">Booked Date: {appointment.booked_date}</p>
-                                <p className="text-sm text-gray-500">Amount: {appointment.fees} ₹</p>
+                                <p className="text-sm text-gray-500">Amount: ₹ {appointment.fees} </p>
                               </div>
                               <div className="flex flex-col items-center gap-12">
                                 <div className="flex flex-row items-center gap-3">
