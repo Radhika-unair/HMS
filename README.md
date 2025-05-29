@@ -80,11 +80,6 @@ Deploy it using **Vercel, Netlify, or a cloud provider**.
 
 ---
 
-## 📝 License
-This project is licensed under the **MIT License** – see the [LICENSE](LICENSE) file.
-
----
-
 ## 🤝 Contributing
 Contributions are welcome!  
 - Fork the repository  
