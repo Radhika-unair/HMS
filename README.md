@@ -95,10 +95,7 @@ Contributions are welcome!
 
 ---
 
-## 📬 Contact
-📧 Email: [your-email@example.com]  
-🔗 GitHub: [your-profile](https://github.com/your-username)  
-🐦 Twitter: [@yourhandle](https://twitter.com/yourhandle)  
+
 
 ---
 
